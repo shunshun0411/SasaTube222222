@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Sasa Tube - YouTube検索・ショート・ゲーム</title>
+  <style>
+    :root {
+      --bg-base: #0f0f0f;
+      --bg-elevated: #181818;
+      --bg-chip: #272727;
+      --bg-chip-hover: #3f3f3f;
+      --text-main: #f1f1f1;
+      --text-sub: #aaaaaa;
+      --border: #2c2c2c;
+      --accent-red: #ff0033;
+      --accent-neon: #d8ff00;
+      --accent-cyan: #00f0ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-base);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+    /* ===== トップヘッダー ===== */
+    .yt-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 56px;
+      background: rgba(15, 15, 15, 0.96);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      gap: 10px;
+      border-bottom: 1px solid #1f1f1f;
+    }
+    .yt-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      flex-shrink: 0;
+    }
+    .yt-logo-badge {
+      width: 30px;
+      height: 21px;
+      background: var(--accent-red);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .yt-logo-badge::after {
+      content: "";
+      border-style: solid;
+      border-width: 5px 0 5px 9px;
+      border-color: transparent transparent transparent #fff;
+      margin-left: 2px;
+    }
+
+    /* 検索ボックス＋サジェスト */
+    .yt-search-wrap {
+      position: relative;
+      flex: 1;
+      max-width: 580px;
+      display: flex;
+      align-items: center;
+    }
+    .yt-search-box {
+      display: flex;
+      width: 100%;
+      height: 38px;
+      background: #121212;
+      border: 1px solid #303030;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .yt-search-box:focus-within {
+      border-color: #3ea6ff;
+    }
+    .yt-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      padding: 0 14px;
+      font-size: 14px;
+      outline: none;
+      min-width: 0;
+    }
+    .yt-search-clear {
+      padding: 0 8px;
+      color: var(--text-sub);
+      font-size: 14px;
+      display: none;
+    }
+    .yt-search-btn {
+      width: 52px;
+      background: #222222;
+      border-left: 1px solid #303030;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+    .yt-suggest-box {
+      display: none;
+      position: absolute;
+      top: 44px;
+      left: 0;
+      right: 0;
+      background: #212121;
+      border: 1px solid #383838;
+      border-radius: 14px;
+      padding: 6px 0;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.75);
+      z-index: 200;
+    }
+    .yt-suggest-box.open { display: block; }
+    .yt-suggest-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      font-size: 14px;
+      width: 100%;
+      text-align: left;
+    }
+    .yt-suggest-item:hover, .yt-suggest-item:active {
+      background: #333333;
+    }
+
+    .yt-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .yt-pill-btn {
+      background: var(--bg-chip);
+      color: var(--text-main);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .yt-pill-btn:active { background: var(--bg-chip-hover); }
+
+    /* ===== レイアウト（サイドバー＋メイン） ===== */
+    .yt-shell {
+      display: flex;
+      min-height: calc(100vh - 56px);
+    }
+    .yt-sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      padding: 10px 8px;
+      border-right: 1px solid #1f1f1f;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .yt-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      text-align: left;
+    }
+    .yt-nav-item.active {
+      background: #272727;
+      font-weight: 800;
+    }
+    .yt-nav-item:hover { background: #1f1f1f; }
+    .yt-nav-sep {
+      height: 1px;
+      background: #262626;
+      margin: 8px 6px;
+    }
+
+    /* スマホ・縦画面用ボトムナビ */
+    .yt-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      background: rgba(15, 15, 15, 0.97);
+      border-top: 1px solid #242424;
+      z-index: 100;
+      justify-content: space-around;
+      align-items: center;
+    }
+    .yt-bnav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-sub);
+      gap: 2px;
+      flex: 1;
+      height: 100%;
+    }
+    .yt-bnav-btn.active { color: #fff; }
+    .yt-bnav-icon { font-size: 18px; }
+
+    @media (max-width: 820px) {
+      .yt-sidebar { display: none; }
+      .yt-bottom-nav { display: flex; }
+      .yt-shell { padding-bottom: 64px; }
+    }
+
+    /* ===== メインコンテンツ ===== */
+    .yt-main {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 16px 28px;
+    }
+    .yt-chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .yt-chips::-webkit-scrollbar { display: none; }
+    .yt-chip {
+      background: var(--bg-chip);
+      color: var(--text-main);
+      padding: 6px 13px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .yt-chip.active {
+      background: #f1f1f1;
+      color: #0f0f0f;
+    }
+
+    /* 動画プレイヤーセクション */
+    .yt-player-section {
+      display: none;
+      margin-bottom: 20px;
+      background: #141414;
+      border: 1px solid #262626;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .yt-player-section.open { display: block; }
+    .yt-iframe-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+    .yt-iframe-box iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .yt-player-meta {
+      padding: 12px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .yt-player-title {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.35;
+      margin-bottom: 4px;
+    }
+    .yt-player-sub {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+    .yt-player-btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* 動画グリッド */
+    .yt-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+    }
+    .yt-video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .yt-card {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+    }
+    .yt-thumb-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #202020;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .yt-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .yt-duration {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    .yt-card-body {
+      display: flex;
+      gap: 10px;
+    }
+    .yt-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #303030;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      flex-shrink: 0;
+      color: #fff;
+    }
+    .yt-card-info { flex: 1; min-width: 0; }
+    .yt-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .yt-card-meta {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    /* ===== ショート動画（Shorts）画面 ===== */
+    #view-shorts {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 0;
+    }
+    #view-shorts.active { display: flex; }
+    .shorts-stage {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .shorts-frame {
+      width: min(360px, 84vw);
+      height: min(640px, 72vh);
+      background: #000;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #2f2f2f;
+      position: relative;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+    }
+    .shorts-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .shorts-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .shorts-nav-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: #272727;
+      color: #fff;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .shorts-nav-btn:active { background: #444; }
+    .shorts-caption {
+      margin-top: 10px;
+      text-align: center;
+      max-width: 360px;
+    }
+    .shorts-caption-title {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    /* ===== モーダル共通（URL再生・SASA ARCADE・ZZZ） ===== */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(8, 9, 13, 0.96);
+      backdrop-filter: blur(8px);
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #13151e;
+      border-bottom: 1px solid #262a3a;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .modal-box-center {
+      width: 100%;
+      max-width: 480px;
+      margin: auto;
+      padding: 16px;
+    }
+
+    /* SASA ARCADE スタイル */
+    .sa-logo {
+      font-size: 17px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #d8ff00, #00f0ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .sa-grid-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .sa-card {
+      background: #151824;
+      border: 1px solid #292f45;
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+    .sa-card:active { border-color: #00f0ff; transform: scale(0.98); }
+    .sa-stage { display: none; flex-direction: column; align-items: center; width: 100%; }
+    .sa-stage.active { display: flex; }
+    .sa-hud {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      background: #151824;
+      border: 1px solid #292f45;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .sa-canvas {
+      background: #06070a;
+      border: 2px solid #292f45;
+      border-radius: 12px;
+      max-width: 100%;
+      touch-action: none;
+    }
+    .sa-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .sa-ctrl-btn {
+      background: #1f2436;
+      color: #fff;
+      border: 1px solid #37405c;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 800;
+      min-width: 52px;
+      touch-action: manipulation;
+    }
+    .sa-ctrl-btn:active { background: #00f0ff; color: #000; }
+
+    /* ZZZ TVグリッド */
+    #sa-zzz-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      background: #0c0e14;
+      padding: 10px;
+      border-radius: 14px;
+      border: 2px solid #292f45;
+      width: 100%;
+      max-width: 330px;
+      aspect-ratio: 1 / 1;
+      touch-action: none;
+    }
+    .sa-zzz-cell {
+      background: #181c28;
+      border: 2px solid #2b3145;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .sa-zzz-cell.adj { border-color: rgba(216,255,0,0.65); background: #222738; }
+    .sa-zzz-cell.me { background: #d8ff00; color: #000; border-color: #fff; font-weight: 900; }
+    .sa-zzz-sub { font-size: 9px; font-weight: 800; }
+
+    /* 2048 グリッド */
+    #sa-2048-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      background: #151824;
+      padding: 10px;
+      border-radius: 14px;
+      border: 2px solid #292f45;
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 1 / 1;
+      touch-action: none;
+    }
+    .sa-2048-tile {
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 900;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== ヘッダー ===== -->
+  <header class="yt-header">
+    <button class="yt-brand" id="logo-home-btn" type="button">
+      <span class="yt-logo-badge"></span>
+      <span>Sasa Tube</span>
+    </button>
+
+    <div class="yt-search-wrap">
+      <form class="yt-search-box" id="search-form">
+        <input type="text" id="search-input" class="yt-search-input" placeholder="検索（曲名、ゲーム実況、ショート、ZZZ...）" autocomplete="off">
+        <button type="button" id="search-clear" class="yt-search-clear">✕</button>
+        <button type="submit" class="yt-search-btn" title="検索">🔍</button>
+      </form>
+      <div class="yt-suggest-box" id="suggest-box"></div>
+    </div>
+
+    <div class="yt-header-actions">
+      <button class="yt-pill-btn" id="open-url-modal" type="button">🔗 URL再生</button>
+      <button class="yt-pill-btn" id="open-arcade-header" type="button">🎮 ゲーム</button>
+    </div>
+  </header>
+
+  <div class="yt-shell">
+    <!-- 左サイドバー -->
+    <aside class="yt-sidebar">
+      <button class="yt-nav-item active" data-nav="home">🏠 ホーム</button>
+      <button class="yt-nav-item" data-nav="shorts">⚡ ショート</button>
+      <div class="yt-nav-sep"></div>
+      <button class="yt-nav-item" data-nav="fav">❤️ お気に入り</button>
+      <button class="yt-nav-item" data-nav="history">🕒 再生履歴</button>
+      <div class="yt-nav-sep"></div>
+      <button class="yt-nav-item" id="open-arcade-side">🎮 SASA ARCADE</button>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <main class="yt-main">
+      <!-- 1. 通常動画ビュー（ホーム / 検索 / お気に入り / 履歴） -->
+      <div id="view-feed">
+        <div class="yt-chips" id="category-chips">
+          <button class="yt-chip active" data-q="">すべて</button>
+          <button class="yt-chip" data-q="ゼンレスゾーンゼロ 公式">ゼンレスゾーンゼロ</button>
+          <button class="yt-chip" data-q="作業用BGM Lofi">作業用BGM</button>
+          <button class="yt-chip" data-q="ボカロ 人気曲 MV">ボカロ・音楽</button>
+          <button class="yt-chip" data-q="ゲーム実況 最新">ゲーム実況</button>
+          <button class="yt-chip" data-q="アニメ OP ED">アニメ</button>
+          <button class="yt-chip" data-q="おもしろ 切り抜き">切り抜き</button>
+        </div>
+
+        <!-- 埋め込みプレイヤー -->
+        <section class="yt-player-section" id="player-section">
+          <div class="yt-iframe-box">
+            <iframe id="main-iframe" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          </div>
+          <div class="yt-player-meta">
+            <div style="flex:1;min-width:200px;">
+              <div class="yt-player-title" id="player-title">動画タイトル</div>
+              <div class="yt-player-sub" id="player-author">チャンネル名</div>
+            </div>
+            <div class="yt-player-btns">
+              <button class="yt-pill-btn" id="player-fav-btn">🤍 お気に入り保存</button>
+              <button class="yt-pill-btn" id="player-arcade-btn">🎮 聴きながらゲーム</button>
+              <button class="yt-pill-btn" id="player-close-btn">✕ 閉じる</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="yt-status-bar">
+          <span id="feed-heading">おすすめ動画</span>
+          <span id="search-source-badge">マルチAPI検索対応</span>
+        </div>
+
+        <div class="yt-video-grid" id="video-grid"></div>
+      </div>
+
+      <!-- 2. ショート動画ビュー -->
+      <div id="view-shorts">
+        <div class="yt-chips" id="shorts-chips" style="max-width:440px;width:100%;">
+          <button class="yt-chip active" data-sq="shorts 人気 日本">🔥 トレンド</button>
+          <button class="yt-chip" data-sq="ゼンゼロ shorts">⚡ ゼンゼロ</button>
+          <button class="yt-chip" data-sq="おもしろ shorts">😂 おもしろ</button>
+          <button class="yt-chip" data-sq="猫 かわいい shorts">🐱 動物</button>
+          <button class="yt-chip" data-sq="マイクラ shorts">⛏️ ゲーム</button>
+        </div>
+
+        <div class="shorts-stage">
+          <div class="shorts-frame" id="shorts-touch-area">
+            <iframe id="shorts-iframe" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="shorts-controls">
+            <button class="shorts-nav-btn" id="shorts-prev" title="前のショート">▲</button>
+            <button class="shorts-nav-btn" id="shorts-fav" title="お気に入り">❤️</button>
+            <button class="shorts-nav-btn" id="shorts-next" title="次のショート">▼</button>
+          </div>
+        </div>
+        <div class="shorts-caption">
+          <div class="shorts-caption-title" id="shorts-title">ショート動画読み込み中...</div>
+          <div class="yt-card-meta" id="shorts-author">上下ボタン または スワイプで切り替え</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- スマホ・タブレット縦持ち用ボトムナビ -->
+  <nav class="yt-bottom-nav">
+    <button class="yt-bnav-btn active" data-nav="home"><span class="yt-bnav-icon">🏠</span>ホーム</button>
+    <button class="yt-bnav-btn" data-nav="shorts"><span class="yt-bnav-icon">⚡</span>ショート</button>
+    <button class="yt-bnav-btn" data-nav="fav"><span class="yt-bnav-icon">❤️</span>お気に入り</button>
+    <button class="yt-bnav-btn" data-nav="history"><span class="yt-bnav-icon">🕒</span>履歴</button>
+    <button class="yt-bnav-btn" id="open-arcade-bottom"><span class="yt-bnav-icon">🎮</span>ゲーム</button>
+  </nav>
+
+  <!-- ===== URL直接再生モーダル ===== -->
+  <div class="modal-backdrop" id="url-modal">
+    <div class="modal-topbar">
+      <span style="font-weight:800;">🔗 YouTube URL / 動画ID 直接再生</span>
+      <button class="yt-pill-btn" id="close-url-modal">✕ 閉じる</button>
+    </div>
+    <div class="modal-box-center">
+      <div style="background:#181818;border:1px solid #2e2e2e;border-radius:16px;padding:18px;">
+        <p style="font-size:13px;color:#bbb;margin-bottom:12px;">YouTubeの動画URL（通常・youtu.be・Shorts）または11桁の動画IDを貼り付けて再生できます。</p>
+        <input type="text" id="direct-url-input" placeholder="https://www.youtube.com/watch?v=..." style="width:100%;padding:12px;border-radius:10px;border:1px solid #3a3a3a;background:#0f0f0f;color:#fff;font-size:14px;margin-bottom:12px;">
+        <button id="play-direct-url-btn" style="width:100%;padding:12px;border-radius:10px;background:#ff0033;color:#fff;font-weight:800;font-size:14px;">▶ この動画を再生</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SASA ARCADE（全4ゲーム統合ポータル） ===== -->
+  <div class="modal-backdrop" id="sasa-arcade-modal">
+    <div class="modal-topbar">
+      <div class="sa-logo">🎮 SASA ARCADE</div>
+      <div style="display:flex;gap:8px;">
+        <button class="yt-pill-btn" id="sa-back-lobby" style="display:none;">◀ ゲーム一覧</button>
+        <button class="yt-pill-btn" id="sa-close-arcade">✕ 動画へ戻る</button>
+      </div>
+    </div>
+
+    <div class="modal-box-center">
+      <!-- ロビー -->
+      <div id="sa-lobby">
+        <div style="background:#151824;border:1px solid #292f45;border-radius:14px;padding:14px;">
+          <div style="font-size:14px;font-weight:900;color:#d8ff00;">動画やBGMを流したまま遊べるゲームセンター</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:3px;">4タイトル収録・ハイスコア自動保存</div>
+        </div>
+
+        <div class="sa-grid-cards">
+          <div class="sa-card" data-launch="zzz">
+            <div>
+              <div style="font-size:30px;margin-bottom:6px;">⚡</div>
+              <span style="background:#d8ff00;color:#000;font-size:10px;font-weight:900;padding:2px 6px;border-radius:4px;">ZZZ STYLE</span>
+              <div style="font-size:14px;font-weight:900;margin:6px 0 4px;">ホロウ探索 ＆ 極限パリィ</div>
+              <div style="font-size:11px;color:#9ca3af;">TVアレイ探索＆黄金枠でジャストパリィ！</div>
+            </div>
+            <div style="font-size:11px;font-weight:800;color:#d8ff00;margin-top:8px;" id="best-label-zzz">BEST: 0</div>
+          </div>
+
+          <div class="sa-card" data-launch="stg">
+            <div>
+              <div style="font-size:30px;margin-bottom:6px;">🚀</div>
+              <span style="background:#00f0ff;color:#000;font-size:10px;font-weight:900;padding:2px 6px;border-radius:4px;">SHOOTING</span>
+              <div style="font-size:14px;font-weight:900;margin:6px 0 4px;">ギャラクシー・ストライカー</div>
+              <div style="font-size:11px;color:#9ca3af;">弾幕強化＆巨大ボス撃破の縦スクロールSTG</div>
+            </div>
+            <div style="font-size:11px;font-weight:800;color:#00f0ff;margin-top:8px;" id="best-label-stg">BEST: 0</div>
+          </div>
+
+          <div class="sa-card" data-launch="blocks">
+            <div>
+              <div style="font-size:30px;margin-bottom:6px;">🧱</div>
+              <span style="background:#ff0055;color:#fff;font-size:10px;font-weight:900;padding:2px 6px;border-radius:4px;">PUZZLE</span>
+              <div style="font-size:14px;font-weight:900;margin:6px 0 4px;">ネオン・ブロックス</div>
+              <div style="font-size:11px;color:#9ca3af;">回転・高速落下でラインを揃える落ちものパズル</div>
+            </div>
+            <div style="font-size:11px;font-weight:800;color:#ff0055;margin-top:8px;" id="best-label-blocks">BEST: 0</div>
+          </div>
+
+          <div class="sa-card" data-launch="g2048">
+            <div>
+              <div style="font-size:30px;margin-bottom:6px;">🔢</div>
+              <span style="background:#a855f7;color:#fff;font-size:10px;font-weight:900;padding:2px 6px;border-radius:4px;">BRAIN</span>
+              <div style="font-size:14px;font-weight:900;margin:6px 0 4px;">2048 ネオン</div>
+              <div style="font-size:11px;color:#9ca3af;">スワイプで数字を合体させる定番パズル</div>
+            </div>
+            <div style="font-size:11px;font-weight:800;color:#d8ff00;margin-top:8px;" id="best-label-g2048">BEST: 0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. ZZZ ホロウ探索＆パリィ -->
+      <div id="stage-zzz" class="sa-stage">
+        <div class="sa-hud">
+          <span id="zzz-hud-floor">階層: 1F</span>
+          <span id="zzz-hud-score" style="color:#d8ff00;">SCORE: 0</span>
+          <span id="zzz-hud-corr" style="color:#00f0ff;">侵食: 0%</span>
+        </div>
+        <div id="zzz-msg" style="font-size:12px;font-weight:800;color:#d8ff00;margin-bottom:8px;">👾 敵を全滅させて出口🚪を開放せよ！</div>
+        <div id="sa-zzz-grid"></div>
+        <div id="zzz-battle-box" style="display:none;width:100%;max-width:330px;background:#151824;border:2px solid #ff5500;border-radius:14px;padding:12px;margin-top:10px;text-align:center;">
+          <div id="zzz-b-hp" style="font-weight:900;margin-bottom:6px;">敵シールド: ❤️❤️</div>
+          <div style="width:100%;height:18px;background:#090a0f;border-radius:999px;overflow:hidden;position:relative;margin-bottom:10px;border:1px solid #333;">
+            <div style="position:absolute;left:62%;width:24%;height:100%;background:rgba(216,255,0,0.4);"></div>
+            <div id="zzz-b-bar" style="width:0%;height:100%;background:#ff5500;"></div>
+          </div>
+          <button id="zzz-parry-trigger" style="width:100%;padding:12px;border-radius:10px;background:#d8ff00;color:#000;font-weight:900;font-size:15px;">⚡ 黄色ゾーンで極限パリィ！</button>
+        </div>
+        <div class="sa-controls">
+          <button class="sa-ctrl-btn" data-zm="0,-1">▲</button>
+          <button class="sa-ctrl-btn" data-zm="-1,0">◀</button>
+          <button class="sa-ctrl-btn" data-zm="0,1">▼</button>
+          <button class="sa-ctrl-btn" data-zm="1,0">▶</button>
+          <button class="sa-ctrl-btn" id="zzz-restart">↻ リセット</button>
+        </div>
+      </div>
+
+      <!-- 2. STG -->
+      <div id="stage-stg" class="sa-stage">
+        <div class="sa-hud">
+          <span id="stg-hud-score" style="color:#00f0ff;">SCORE: 0</span>
+          <span id="stg-hud-lv">WEAPON Lv.1</span>
+          <span id="stg-hud-hp">❤️❤️❤️</span>
+        </div>
+        <canvas id="stg-canvas" class="sa-canvas" width="330" height="420"></canvas>
+        <button class="sa-ctrl-btn" id="stg-restart" style="margin-top:10px;">↻ リスタート</button>
+      </div>
+
+      <!-- 3. 落ちものパズル -->
+      <div id="stage-blocks" class="sa-stage">
+        <div class="sa-hud">
+          <span id="blk-hud-score" style="color:#ff0055;">SCORE: 0</span>
+          <span id="blk-hud-lines">LINES: 0</span>
+          <span id="blk-hud-lv">LV.1</span>
+        </div>
+        <canvas id="blk-canvas" class="sa-canvas" width="240" height="400"></canvas>
+        <div class="sa-controls">
+          <button class="sa-ctrl-btn" id="blk-left">◀</button>
+          <button class="sa-ctrl-btn" id="blk-rot">↻ 回転</button>
+          <button class="sa-ctrl-btn" id="blk-right">▶</button>
+          <button class="sa-ctrl-btn" id="blk-down">▼ 落下</button>
+          <button class="sa-ctrl-btn" id="blk-restart">リセット</button>
+        </div>
+      </div>
+
+      <!-- 4. 2048 -->
+      <div id="stage-g2048" class="sa-stage">
+        <div class="sa-hud">
+          <span id="g20-hud-score" style="color:#d8ff00;">SCORE: 0</span>
+          <span id="g20-hud-best">BEST: 0</span>
+        </div>
+        <div id="sa-2048-grid"></div>
+        <div class="sa-controls">
+          <button class="sa-ctrl-btn" data-m20="up">▲</button>
+          <button class="sa-ctrl-btn" data-m20="left">◀</button>
+          <button class="sa-ctrl-btn" data-m20="down">▼</button>
+          <button class="sa-ctrl-btn" data-m20="right">▶</button>
+          <button class="sa-ctrl-btn" id="g20-restart">リセット</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  // ==========================================
+  // 1. データ保存 ＆ おすすめ初期リスト
+  // ==========================================
+  let favorites = JSON.parse(localStorage.getItem('st_favs') || '[]');
+  let historyList = JSON.parse(localStorage.getItem('st_hist') || '[]');
+  let searchHistory = JSON.parse(localStorage.getItem('st_shist') || '["ゼンレスゾーンゼロ", "作業用BGM", "ボカロ", "ゲーム実況"]');
+  let currentVideo = null;
+  let currentTab = 'home';
+
+  const DEFAULT_VIDEOS = [
+    { id: 'jfKfPfyJRdk', title: 'lofi hip hop radio 📚 beats to relax/study to', author: 'Lofi Girl', duration: 'LIVE' },
+    { id: '4xDzrJKXOOY', title: 'synthwave radio 🌌 beats to chill/game to', author: 'Lofi Girl', duration: 'LIVE' },
+    { id: 'aqz-KE-bpKQ', title: 'Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film', author: 'Blender', duration: '10:34' },
+    { id: 'LXb3EKWsInQ', title: 'COSTA RICA IN 4K 60fps HDR (Ultra HD)', author: 'Jacob + Katie Schwarz', duration: '05:14' },
+    { id: '5qap5aO4i9A', title: 'lofi hip hop radio 💤 beats to sleep/chill to', author: 'Lofi Girl', duration: 'LIVE' },
+    { id: 'rUxyKA_-grg', title: 'Chillhop Radio - jazzy & lofi hip hop beats 🐾', author: 'Chillhop Music', duration: 'LIVE' },
+    { id: 'M7lc1UVf-VE', title: 'YouTube Developers Live: Embedded Web Player Demo', author: 'Google Developers', duration: '24:12' },
+    { id: 'jNQXAC9IVRw', title: 'Me at the zoo (YouTube最初の動画)', author: 'jawed', duration: '00:19' }
+  ];
+
+  const DEFAULT_SHORTS = [
+    { id: 'jNQXAC9IVRw', title: 'Me at the zoo', author: 'jawed' },
+    { id: 'aqz-KE-bpKQ', title: 'Big Buck Bunny Clip', author: 'Blender' },
+    { id: 'LXb3EKWsInQ', title: 'Costa Rica 4K Nature', author: 'Jacob + Katie Schwarz' }
+  ];
+
+  // ==========================================
+  // 2. マルチインスタンス高速並列検索エンジン
+  // ==========================================
+  const INVIDIOUS_NODES = [
+    'https://inv.nadeko.net',
+    'https://invidious.nerdvpn.de',
+    'https://invidious.jing.rocks',
+    'https://iv.datura.network',
+    'https://invidious.privacyredirect.com'
+  ];
+  const PIPED_NODES = [
+    'https://pipedapi.kavin.rocks',
+    'https://pipedapi.tokhmi.xyz',
+    'https://api.piped.projectsegfau.lt'
+  ];
+
+  function formatSec(sec) {
+    if (!sec || sec <= 0) return 'LIVE';
+    const m = Math.floor(sec / 60);
+    const s = String(sec % 60).padStart(2, '0');
+    return m + ':' + s;
+  }
+
+  async function fetchWithTimeout(url, ms = 4500) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(id);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch (e) {
+      clearTimeout(id);
+      throw e;
+    }
+  }
+
+  async function searchVideosMulti(query, isShorts = false) {
+    const q = encodeURIComponent(isShorts ? query + ' #shorts' : query);
+    const tasks = [];
+
+    INVIDIOUS_NODES.forEach(host => {
+      tasks.push(
+        fetchWithTimeout(`${host}/api/v1/search?q=${q}&type=video®ion=JP`)
+          .then(data => {
+            if (!Array.isArray(data) || !data.length) throw new Error('empty');
+            return data.filter(v => v.videoId).map(v => ({
+              id: v.videoId,
+              title: v.title || '無題の動画',
+              author: v.author || 'YouTube',
+              duration: formatSec(v.lengthSeconds)
+            }));
+          })
+      );
+    });
+
+    PIPED_NODES.forEach(host => {
+      tasks.push(
+        fetchWithTimeout(`${host}/search?q=${q}&filter=videos`)
+          .then(data => {
+            const items = data && data.items ? data.items : [];
+            if (!items.length) throw new Error('empty');
+            return items.filter(v => v.url && v.url.includes('v=')).map(v => ({
+              id: v.url.split('v=')[1].split('&')[0],
+              title: v.title || '無題の動画',
+              author: v.uploaderName || 'YouTube',
+              duration: formatSec(v.duration)
+            }));
+          })
+      );
+    });
+
+    return await Promise.any(tasks);
+  }
+
+  // ==========================================
+  // 3. 検索サジェスト（オートコンプリート）
+  // ==========================================
+  const searchInput = document.getElementById('search-input');
+  const suggestBox = document.getElementById('suggest-box');
+  const clearBtn = document.getElementById('search-clear');
+  let suggestTimer = null;
+
+  function renderSuggestions(list, isHistory = false) {
+    if (!list.length) { suggestBox.classList.remove('open'); return; }
+    suggestBox.innerHTML = '';
+    list.slice(0, 7).forEach(text => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'yt-suggest-item';
+      btn.innerHTML = `<span style="color:#888;">${isHistory ? '🕒' : '🔍'}</span><span>${text}</span>`;
+      btn.onclick = () => {
+        searchInput.value = text;
+        suggestBox.classList.remove('open');
+        executeSearch(text);
+      };
+      suggestBox.appendChild(btn);
+    });
+    suggestBox.classList.add('open');
+  }
+
+  searchInput.addEventListener('focus', () => {
+    if (!searchInput.value.trim()) renderSuggestions(searchHistory, true);
+  });
+
+  searchInput.addEventListener('input', () => {
+    const val = searchInput.value.trim();
+    clearBtn.style.display = val ? 'block' : 'none';
+    clearTimeout(suggestTimer);
+    if (!val) {
+      renderSuggestions(searchHistory, true);
+      return;
+    }
+    suggestTimer = setTimeout(async () => {
+      try {
+        const res = await fetchWithTimeout(`${INVIDIOUS_NODES[0]}/api/v1/search/suggestions?q=${encodeURIComponent(val)}`, 2500);
+        if (res && Array.isArray(res.suggestions) && res.suggestions.length) {
+          renderSuggestions(res.suggestions, false);
+        }
+      } catch (_) {}
+    }, 220);
+  });
+
+  clearBtn.onclick = () => {
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    searchInput.focus();
+  };
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.yt-search-wrap')) suggestBox.classList.remove('open');
+  });
+
+  // ==========================================
+  // 4. 動画リスト描画 ＆ 再生処理
+  // ==========================================
+  const videoGrid = document.getElementById('video-grid');
+  const feedHeading = document.getElementById('feed-heading');
+  const badgeEl = document.getElementById('search-source-badge');
+
+  function renderVideoCards(list) {
+    videoGrid.innerHTML = '';
+    if (!list.length) {
+      videoGrid.innerHTML = '<div style="color:#999;padding:24px;">動画が見つかりませんでした。別のキーワードでお試しください。</div>';
+      return;
+    }
+    list.forEach(v => {
+      const card = document.createElement('div');
+      card.className = 'yt-card';
+      const initial = (v.author || 'Y').charAt(0).toUpperCase();
+      card.innerHTML = `
+        <div class="yt-thumb-wrap">
+          <img src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" loading="lazy" alt="">
+          <span class="yt-duration">${v.duration || 'VIDEO'}</span>
+        </div>
+        <div class="yt-card-body">
+          <div class="yt-avatar">${initial}</div>
+          <div class="yt-card-info">
+            <div class="yt-card-title">${v.title}</div>
+            <div class="yt-card-meta">${v.author}</div>
+          </div>
+        </div>
+      `;
+      card.onclick = () => playVideo(v);
+      videoGrid.appendChild(card);
+    });
+  }
+
+  function playVideo(v) {
+    currentVideo = v;
+    const sec = document.getElementById('player-section');
+    const iframe = document.getElementById('main-iframe');
+    iframe.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0&playsinline=1`;
+    document.getElementById('player-title').textContent = v.title;
+    document.getElementById('player-author').textContent = v.author;
+    sec.classList.add('open');
+    updateFavButtonState();
+
+    // 履歴保存
+    historyList = [v, ...historyList.filter(item => item.id !== v.id)].slice(0, 40);
+    localStorage.setItem('st_hist', JSON.stringify(historyList));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateFavButtonState() {
+    if (!currentVideo) return;
+    const isFav = favorites.some(f => f.id === currentVideo.id);
+    document.getElementById('player-fav-btn').textContent = isFav ? '❤️ 保存済み' : '🤍 お気に入り保存';
+  }
+
+  document.getElementById('player-fav-btn').onclick = () => {
+    if (!currentVideo) return;
+    const exists = favorites.some(f => f.id === currentVideo.id);
+    if (exists) favorites = favorites.filter(f => f.id !== currentVideo.id);
+    else favorites = [currentVideo, ...favorites];
+    localStorage.setItem('st_favs', JSON.stringify(favorites));
+    updateFavButtonState();
+  };
+
+  document.getElementById('player-close-btn').onclick = () => {
+    document.getElementById('main-iframe').src = '';
+    document.getElementById('player-section').classList.remove('open');
+  };
+
+  async function executeSearch(query) {
+    switchTab('home');
+    if (!query) {
+      feedHeading.textContent = 'おすすめ動画';
+      badgeEl.textContent = 'トレンド表示中';
+      renderVideoCards(DEFAULT_VIDEOS);
+      return;
+    }
+    searchHistory = [query, ...searchHistory.filter(s => s !== query)].slice(0, 10);
+    localStorage.setItem('st_shist', JSON.stringify(searchHistory));
+
+    feedHeading.textContent = `「${query}」の検索結果`;
+    badgeEl.textContent = '高速並列検索中...';
+    videoGrid.innerHTML = '<div style="color:#aaa;padding:20px;">🔍 複数のサーバーから高速検索しています...</div>';
+
+    try {
+      const results = await searchVideosMulti(query, false);
+      badgeEl.textContent = `${results.length}件ヒット`;
+      renderVideoCards(results);
+    } catch (e) {
+      badgeEl.textContent = '通信エラー';
+      videoGrid.innerHTML = '<div style="color:#ff6b6b;padding:20px;">検索サーバーが混雑しています。数秒おいて再検索するか「🔗 URL再生」をご利用ください。</div>';
+    }
+  }
+
+  document.getElementById('search-form').onsubmit = e => {
+    e.preventDefault();
+    suggestBox.classList.remove('open');
+    executeSearch(searchInput.value.trim());
+  };
+
+  document.querySelectorAll('#category-chips .yt-chip').forEach(chip => {
+    chip.onclick = () => {
+      document.querySelectorAll('#category-chips .yt-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      const q = chip.dataset.q;
+      searchInput.value = q;
+      clearBtn.style.display = q ? 'block' : 'none';
+      executeSearch(q);
+    };
+  });
+
+  // ==========================================
+  // 5. ショート動画（Shorts）プレイヤー
+  // ==========================================
+  let shortsQueue = [...DEFAULT_SHORTS];
+  let shortsIdx = 0;
+
+  function loadShortAt(idx) {
+    if (!shortsQueue.length) return;
+    shortsIdx = (idx + shortsQueue.length) % shortsQueue.length;
+    const item = shortsQueue[shortsIdx];
+    document.getElementById('shorts-iframe').src = `https://www.youtube-nocookie.com/embed/${item.id}?autoplay=1&loop=1&playlist=${item.id}&playsinline=1&rel=0`;
+    document.getElementById('shorts-title').textContent = item.title;
+    document.getElementById('shorts-author').textContent = `${item.author} (${shortsIdx + 1} / ${shortsQueue.length})`;
+  }
+
+  async function fetchShortsTopic(query) {
+    document.getElementById('shorts-title').textContent = 'ショート動画を読み込み中...';
+    try {
+      const res = await searchVideosMulti(query, true);
+      if (res.length) {
+        shortsQueue = res;
+        loadShortAt(0);
+      }
+    } catch (_) {
+      shortsQueue = [...DEFAULT_SHORTS];
+      loadShortAt(0);
+    }
+  }
+
+  document.getElementById('shorts-prev').onclick = () => loadShortAt(shortsIdx - 1);
+  document.getElementById('shorts-next').onclick = () => loadShortAt(shortsIdx + 1);
+  document.getElementById('shorts-fav').onclick = () => {
+    const item = shortsQueue[shortsIdx];
+    if (!item) return;
+    if (!favorites.some(f => f.id === item.id)) {
+      favorites = [item, ...favorites];
+      localStorage.setItem('st_favs', JSON.stringify(favorites));
+      alert('お気に入りに保存しました！');
+    }
+  };
+
+  document.querySelectorAll('#shorts-chips .yt-chip').forEach(chip => {
+    chip.onclick = () => {
+      document.querySelectorAll('#shorts-chips .yt-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      fetchShortsTopic(chip.dataset.sq);
+    };
+  });
+
+  // ==========================================
+  // 6. タブ切り替え ＆ URL直接再生
+  // ==========================================
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('[data-nav]').forEach(el => {
+      el.classList.toggle('active', el.dataset.nav === tab);
+    });
+
+    const viewFeed = document.getElementById('view-feed');
+    const viewShorts = document.getElementById('view-shorts');
+
+    if (tab === 'shorts') {
+      viewFeed.style.display = 'none';
+      viewShorts.classList.add('active');
+      if (!document.getElementById('shorts-iframe').src) fetchShortsTopic('shorts 人気 日本');
+      return;
+    }
+
+    viewShorts.classList.remove('active');
+    document.getElementById('shorts-iframe').src = '';
+    viewFeed.style.display = 'block';
+
+    if (tab === 'home') {
+      feedHeading.textContent = 'おすすめ動画';
+      badgeEl.textContent = 'マルチAPI検索対応';
+      renderVideoCards(DEFAULT_VIDEOS);
+    } else if (tab === 'fav') {
+      feedHeading.textContent = `お気に入り (${favorites.length}件)`;
+      badgeEl.textContent = 'ローカル保存済み';
+      renderVideoCards(favorites);
+    } else if (tab === 'history') {
+      feedHeading.textContent = `再生履歴 (${historyList.length}件)`;
+      badgeEl.textContent = '最近の視聴';
+      renderVideoCards(historyList);
+    }
+  }
+
+  document.querySelectorAll('[data-nav]').forEach(btn => {
+    btn.onclick = () => switchTab(btn.dataset.nav);
+  });
+  document.getElementById('logo-home-btn').onclick = () => {
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    switchTab('home');
+  };
+
+  // URL直接再生モーダル
+  const urlModal = document.getElementById('url-modal');
+  document.getElementById('open-url-modal').onclick = () => urlModal.classList.add('open');
+  document.getElementById('close-url-modal').onclick = () => urlModal.classList.remove('open');
+  document.getElementById('play-direct-url-btn').onclick = () => {
+    const raw = document.getElementById('direct-url-input').value.trim();
+    const match = raw.match(/(?:v=|\/shorts\/|youtu\.be\/|\/embed\/)([a-zA-Z0-9_-]{11})/) || raw.match(/^([a-zA-Z0-9_-]{11})$/);
+    if (!match) { alert('有効なYouTube URLまたは11桁の動画IDを入力してください'); return; }
+    urlModal.classList.remove('open');
+    switchTab('home');
+    playVideo({ id: match[1], title: 'URL指定再生 (' + match[1] + ')', author: 'Direct Link', duration: 'URL' });
+  };
+
+  // ==========================================
+  // 7. SASA ARCADE（全4ゲーム統合）
+  // ==========================================
+  const arcadeModal = document.getElementById('sasa-arcade-modal');
+  const lobby = document.getElementById('sa-lobby');
+  const backLobbyBtn = document.getElementById('sa-back-lobby');
+  let activeGame = null, rafId = null, timerId = null;
+
+  const bests = {
+    zzz: Number(localStorage.getItem('sa_best_zzz') || 0),
+    stg: Number(localStorage.getItem('sa_best_stg') || 0),
+    blocks: Number(localStorage.getItem('sa_best_blocks') || 0),
+    g2048: Number(localStorage.getItem('sa_best_g2048') || 0)
+  };
+  function saveBest(k, v) {
+    if (v > bests[k]) { bests[k] = v; localStorage.setItem('sa_best_' + k, v); }
+    const el = document.getElementById('best-label-' + k);
+    if (el) el.textContent = 'BEST: ' + bests[k];
+  }
+  Object.keys(bests).forEach(k => saveBest(k, 0));
+
+  function stopGameLoops() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (timerId) { clearInterval(timerId); timerId = null; }
+  }
+  function openLobby() {
+    stopGameLoops();
+    activeGame = null;
+    lobby.style.display = 'block';
+    backLobbyBtn.style.display = 'none';
+    document.querySelectorAll('.sa-stage').forEach(s => s.classList.remove('active'));
+  }
+  function openArcade() {
+    arcadeModal.classList.add('open');
+    openLobby();
+  }
+
+  ['open-arcade-header', 'open-arcade-side', 'open-arcade-bottom', 'player-arcade-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.onclick = openArcade;
+  });
+  document.getElementById('sa-close-arcade').onclick = () => { stopGameLoops(); arcadeModal.classList.remove('open'); };
+  backLobbyBtn.onclick = openLobby;
+
+  document.querySelectorAll('[data-launch]').forEach(card => {
+    card.onclick = () => {
+      const g = card.dataset.launch;
+      stopGameLoops();
+      activeGame = g;
+      lobby.style.display = 'none';
+      backLobbyBtn.style.display = 'inline-flex';
+      document.querySelectorAll('.sa-stage').forEach(s => s.classList.remove('active'));
+      document.getElementById('stage-' + g).classList.add('active');
+      if (g === 'zzz') startZzz();
+      if (g === 'stg') startStg();
+      if (g === 'blocks') startBlocks();
+      if (g === 'g2048') start2048();
+    };
+  });
+
+  // --- ZZZ ホロウ探索＆パリィ ---
+  let zFloor=1, zScore=0, zCorr=0, zPos={x:0,y:0}, zMap=[], zBattle=false, zEnemyHp=2, zBar=0, zTarget=null;
+  function initZzzFloor() {
+    zMap = Array.from({length:5}, () => Array(5).fill('tv'));
+    zPos = {x:0,y:0}; zMap[4][4] = 'exit';
+    const cells = [];
+    for (let y=0;y<5;y++) for (let x=0;x<5;x++) if (!((x===0&&y===0)||(x===4&&y===4))) cells.push({x,y});
+    cells.sort(() => Math.random()-0.5);
+    let i = 0;
+    const eCnt = Math.min(4, 1 + Math.floor((zFloor+1)/2));
+    for (let k=0;k<eCnt;k++) zMap[cells[i].y][cells[i++].x] = 'enemy';
+    for (let k=0;k<3;k++) zMap[cells[i].y][cells[i++].x] = 'ether';
+    for (let k=0;k<6;k++) zMap[cells[i].y][cells[i++].x] = 'coin';
+    renderZzz();
+  }
+  function startZzz() {
+    zFloor=1; zScore=0; zCorr=0; zBattle=false;
+    document.getElementById('zzz-battle-box').style.display = 'none';
+    initZzzFloor();
+    let last = performance.now();
+    function loop(now) {
+      const dt = (now - last) / 1000; last = now;
+      if (zBattle) {
+        zBar += dt * (0.75 + zFloor * 0.05);
+        if (zBar >= 1) {
+          zBar = 0; zCorr = Math.min(100, zCorr + 10);
+          document.getElementById('zzz-msg').textContent = '💥 被弾！侵食度 +10%';
+          if (zCorr >= 100) { zBattle = false; document.getElementById('zzz-battle-box').style.display = 'none'; }
+        }
+        document.getElementById('zzz-b-bar').style.width = (zBar * 100) + '%';
+        renderZzzHud();
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+  function zEnemiesLeft() {
+    let c=0; for (let y=0;y<5;y++) for (let x=0;x<5;x++) if (zMap[y][x]==='enemy') c++; return c;
+  }
+  function renderZzzHud() {
+    saveBest('zzz', zScore);
+    document.getElementById('zzz-hud-floor').textContent = '階層: ' + zFloor + 'F';
+    document.getElementById('zzz-hud-score').textContent = 'SCORE: ' + zScore;
+    document.getElementById('zzz-hud-corr').textContent = '侵食: ' + zCorr + '%';
+  }
+  function renderZzz() {
+    renderZzzHud();
+    const grid = document.getElementById('sa-zzz-grid'); grid.innerHTML = '';
+    const left = zEnemiesLeft();
+    for (let y=0;y<5;y++) for (let x=0;x<5;x++) {
+      const d = document.createElement('div'); d.className = 'sa-zzz-cell';
+      const isMe = zPos.x===x && zPos.y===y;
+      const isAdj = Math.abs(zPos.x-x)+Math.abs(zPos.y-y)===1;
+      const t = zMap[y][x];
+      if (isMe) { d.classList.add('me'); d.innerHTML = '🐰<div class="sa-zzz-sub">EOUS</div>'; }
+      else {
+        if (isAdj && zCorr < 100) d.classList.add('adj');
+        if (t==='coin') d.innerHTML = '🪙<div class="sa-zzz-sub">+100</div>';
+        else if (t==='ether') d.innerHTML = '🧪<div class="sa-zzz-sub">-15%</div>';
+        else if (t==='enemy') d.innerHTML = '👾<div class="sa-zzz-sub" style="color:#ff5500;">敵</div>';
+        else if (t==='exit') d.innerHTML = left===0 ? '🚪<div class="sa-zzz-sub" style="color:#00f0ff;">EXIT</div>' : '🔒<div class="sa-zzz-sub">LOCK</div>';
+        else d.innerHTML = '<span style="color:#363c52;font-size:12px;">TV</span>';
+      }
+      d.onclick = () => { if (isAdj) moveZzz(x - zPos.x, y - zPos.y); };
+      grid.appendChild(d);
+    }
+  }
+  function moveZzz(dx, dy) {
+    if (zBattle || zCorr >= 100) return;
+    const nx = zPos.x + dx, ny = zPos.y + dy;
+    if (nx<0||nx>=5||ny<0||ny>=5) return;
+    const t = zMap[ny][nx];
+    if (t==='exit' && zEnemiesLeft()>0) { document.getElementById('zzz-msg').textContent = '🔒 先に敵をすべて倒そう！'; return; }
+    zPos = {x:nx, y:ny}; zCorr = Math.min(100, zCorr + 4);
+    if (t==='coin') { zScore += 100; zMap[ny][nx]='tv'; }
+    else if (t==='ether') { zCorr = Math.max(0, zCorr - 15); zScore += 30; zMap[ny][nx]='tv'; }
+    else if (t==='enemy') {
+      zBattle = true; zTarget = {x:nx, y:ny}; zEnemyHp = zFloor >= 3 ? 3 : 2; zBar = 0;
+      document.getElementById('zzz-b-hp').textContent = '敵シールド: ' + '❤️'.repeat(zEnemyHp);
+      document.getElementById('zzz-battle-box').style.display = 'block';
+    } else if (t==='exit') {
+      zScore += 300 * zFloor; zFloor++; zCorr = Math.max(0, zCorr - 20);
+      document.getElementById('zzz-msg').textContent = '⬇️ ' + zFloor + 'Fへ到達！';
+      initZzzFloor(); return;
+    }
+    if (zCorr >= 100) document.getElementById('zzz-msg').textContent = '⚠️ 侵食限界！リセットで再挑戦';
+    renderZzz();
+  }
+  document.getElementById('zzz-parry-trigger').onclick = () => {
+    if (!zBattle) return;
+    if (zBar >= 0.60 && zBar <= 0.88) {
+      zEnemyHp -= 2; zScore += 180; zCorr = Math.max(0, zCorr - 5);
+      document.getElementById('zzz-msg').textContent = '⚡ PERFECT PARRY!!';
+    } else {
+      zEnemyHp -= 1; zCorr = Math.min(100, zCorr + 6);
+      document.getElementById('zzz-msg').textContent = '✨ COUNTER! (侵食+6%)';
+    }
+    zBar = 0;
+    document.getElementById('zzz-b-hp').textContent = '敵シールド: ' + '❤️'.repeat(Math.max(0, zEnemyHp));
+    if (zEnemyHp <= 0) {
+      zBattle = false; zMap[zTarget.y][zTarget.x] = 'tv'; zScore += 120;
+      document.getElementById('zzz-battle-box').style.display = 'none';
+      document.getElementById('zzz-msg').textContent = zEnemiesLeft()===0 ? '✅ 出口🚪が開放された！' : '👾 撃破成功！';
+    }
+    renderZzz();
+  };
+  document.querySelectorAll('[data-zm]').forEach(b => b.onclick = () => { const [x,y]=b.dataset.zm.split(',').map(Number); moveZzz(x,y); });
+  document.getElementById('zzz-restart').onclick = startZzz;
+
+  // --- STG ---
+  const stgCanvas = document.getElementById('stg-canvas');
+  const stgCtx = stgCanvas.getContext('2d');
+  let ship, bullets, enemies, items, stgScore, stgHp, stgLv, stgOver, stgTick;
+  function startStg() {
+    ship = {x:165, y:370}; bullets=[]; enemies=[]; items=[];
+    stgScore=0; stgHp=3; stgLv=1; stgOver=false; stgTick=0;
+    function loop() {
+      stgCtx.fillStyle = '#06070a'; stgCtx.fillRect(0,0,330,420);
+      stgCtx.fillStyle = '#283048';
+      for (let i=0;i<22;i++) stgCtx.fillRect((i*53)%330, (i*97 + stgTick*2)%420, 2, 2);
+      if (!stgOver) {
+        stgTick++;
+        if (stgTick % 10 === 0) {
+          bullets.push({x:ship.x, y:ship.y-14});
+          if (stgLv >= 2) { bullets.push({x:ship.x-12, y:ship.y-8}); bullets.push({x:ship.x+12, y:ship.y-8}); }
+          if (stgLv >= 3) { bullets.push({x:ship.x-22, y:ship.y}); bullets.push({x:ship.x+22, y:ship.y}); }
+        }
+        const rate = Math.max(18, 42 - Math.floor(stgScore / 400));
+        if (stgTick % rate === 0) {
+          const boss = stgTick % (rate * 10) === 0;
+          enemies.push({ x: 24 + Math.random()*282, y: -20, hp: boss ? 12+stgLv*4 : 1+Math.floor(stgScore/1500), r: boss?24:13, vy: boss?1.1:2.1+Math.random()*1.2, boss });
+        }
+        bullets.forEach(b => b.y -= 8); bullets = bullets.filter(b => b.y > -10);
+        enemies.forEach(e => e.y += e.vy); items.forEach(it => it.y += 2.2);
+        enemies.forEach(e => {
+          bullets.forEach(b => {
+            if (Math.hypot(e.x-b.x, e.y-b.y) < e.r+5) {
+              b.y = -999; e.hp--;
+              if (e.hp <= 0) { stgScore += e.boss?500:50; if (e.boss || Math.random()<0.14) items.push({x:e.x, y:e.y}); }
+            }
+          });
+          if (e.hp > 0 && Math.hypot(e.x-ship.x, e.y-ship.y) < e.r+12) { e.hp = 0; stgHp--; if (stgHp <= 0) stgOver = true; }
+        });
+        enemies = enemies.filter(e => e.hp > 0 && e.y < 445);
+        items.forEach(it => { if (Math.hypot(it.x-ship.x, it.y-ship.y) < 22) { it.y=999; stgLv=Math.min(3,stgLv+1); stgScore+=150; } });
+        items = items.filter(it => it.y < 440);
+      }
+      stgCtx.fillStyle = '#00f0ff'; bullets.forEach(b => stgCtx.fillRect(b.x-2, b.y-6, 4, 12));
+      enemies.forEach(e => { stgCtx.fillStyle = e.boss?'#ff0055':'#ff6b00'; stgCtx.beginPath(); stgCtx.arc(e.x,e.y,e.r,0,Math.PI*2); stgCtx.fill(); });
+      items.forEach(it => { stgCtx.fillStyle='#d8ff00'; stgCtx.beginPath(); stgCtx.arc(it.x,it.y,9,0,Math.PI*2); stgCtx.fill(); stgCtx.fillStyle='#000'; stgCtx.font='bold 11px sans-serif'; stgCtx.textAlign='center'; stgCtx.fillText('P',it.x,it.y+4); });
+      stgCtx.fillStyle = '#fff'; stgCtx.beginPath(); stgCtx.moveTo(ship.x,ship.y-16); stgCtx.lineTo(ship.x-14,ship.y+12); stgCtx.lineTo(ship.x+14,ship.y+12); stgCtx.closePath(); stgCtx.fill();
+      saveBest('stg', stgScore);
+      document.getElementById('stg-hud-score').textContent = 'SCORE: ' + stgScore;
+      document.getElementById('stg-hud-lv').textContent = 'WEAPON Lv.' + stgLv;
+      document.getElementById('stg-hud-hp').textContent = '❤️'.repeat(Math.max(0, stgHp));
+      if (stgOver) {
+        stgCtx.fillStyle = 'rgba(0,0,0,0.75)'; stgCtx.fillRect(0,0,330,420);
+        stgCtx.fillStyle = '#fff'; stgCtx.font = 'bold 22px sans-serif'; stgCtx.textAlign = 'center';
+        stgCtx.fillText('GAME OVER', 165, 205); return;
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+  function moveShip(cx, cy) {
+    const r = stgCanvas.getBoundingClientRect();
+    ship.x = Math.max(16, Math.min(314, (cx - r.left) * (330 / r.width)));
+    ship.y = Math.max(40, Math.min(400, (cy - r.top) * (420 / r.height)));
+  }
+  stgCanvas.addEventListener('touchmove', e => { e.preventDefault(); moveShip(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+  stgCanvas.addEventListener('mousemove', e => { if (activeGame==='stg') moveShip(e.clientX, e.clientY); });
+  document.getElementById('stg-restart').onclick = startStg;
+
+  // --- 落ちものパズル ---
+  const blkCanvas = document.getElementById('blk-canvas');
+  const blkCtx = blkCanvas.getContext('2d');
+  const SHAPES = [[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]],[[1,1,0],[0,1,1]],[[0,1,1],[1,1,0]]];
+  const BCOLORS = ['#00f0ff','#d8ff00','#a855f7','#3b82f6','#ff6b00','#00e676','#ff0055'];
+  let arena, piece, blkScore, blkLines, blkOver;
+  function collide(ar, p) {
+    for (let y=0;y<p.m.length;y++) for (let x=0;x<p.m[y].length;x++) if (p.m[y][x] && (ar[y+p.y] && ar[y+p.y][x+p.x]) !== 0) return true;
+    return false;
+  }
+  function spawnPiece() {
+    const i = Math.floor(Math.random()*SHAPES.length);
+    piece = { m: SHAPES[i].map(r=>[...r]), c: BCOLORS[i], x: 4, y: 0 };
+    if (collide(arena, piece)) blkOver = true;
+  }
+  function drawBlocks() {
+    blkCtx.fillStyle = '#06070a'; blkCtx.fillRect(0,0,240,400);
+    for (let y=0;y<20;y++) for (let x=0;x<12;x++) if (arena[y][x]) { blkCtx.fillStyle=arena[y][x]; blkCtx.fillRect(x*20+1,y*20+1,18,18); }
+    if (piece) { blkCtx.fillStyle=piece.c; piece.m.forEach((r,y)=>r.forEach((v,x)=>{ if(v) blkCtx.fillRect((piece.x+x)*20+1,(piece.y+y)*20+1,18,18); })); }
+    if (blkOver) { blkCtx.fillStyle='rgba(0,0,0,0.75)'; blkCtx.fillRect(0,0,240,400); blkCtx.fillStyle='#fff'; blkCtx.font='bold 20px sans-serif'; blkCtx.textAlign='center'; blkCtx.fillText('GAME OVER',120,200); }
+  }
+  function dropBlock() {
+    if (blkOver) return;
+    piece.y++;
+    if (collide(arena, piece)) {
+      piece.y--;
+      piece.m.forEach((r,y)=>r.forEach((v,x)=>{ if(v) arena[y+piece.y][x+piece.x]=piece.c; }));
+      let cl = 0;
+      for (let y=19;y>=0;y--) if (arena[y].every(v=>v!==0)) { arena.splice(y,1); arena.unshift(Array(12).fill(0)); cl++; y++; }
+      if (cl) { blkLines += cl; blkScore += cl*cl*100; }
+      spawnPiece();
+    }
+    saveBest('blocks', blkScore);
+    document.getElementById('blk-hud-score').textContent = 'SCORE: ' + blkScore;
+    document.getElementById('blk-hud-lines').textContent = 'LINES: ' + blkLines;
+    document.getElementById('blk-hud-lv').textContent = 'LV.' + (1 + Math.floor(blkLines / 5));
+    drawBlocks();
+  }
+  function startBlocks() {
+    arena = Array.from({length:20}, ()=>Array(12).fill(0)); blkScore=0; blkLines=0; blkOver=false;
+    spawnPiece(); drawBlocks(); timerId = setInterval(dropBlock, 480);
+  }
+  document.getElementById('blk-left').onclick = () => { piece.x--; if (collide(arena,piece)) piece.x++; drawBlocks(); };
+  document.getElementById('blk-right').onclick = () => { piece.x++; if (collide(arena,piece)) piece.x--; drawBlocks(); };
+  document.getElementById('blk-down').onclick = dropBlock;
+  document.getElementById('blk-rot').onclick = () => { const o=piece.m; piece.m=o[0].map((_,i)=>o.map(r=>r[i]).reverse()); if(collide(arena,piece)) piece.m=o; drawBlocks(); };
+  document.getElementById('blk-restart').onclick = () => { stopGameLoops(); startBlocks(); };
+
+  // --- 2048 ---
+  let b20, s20;
+  function start2048() { b20 = Array.from({length:4},()=>[0,0,0,0]); s20=0; add20(); add20(); render20(); }
+  function add20() {
+    const e=[]; for (let r=0;r<4;r++) for (let c=0;c<4;c++) if (!b20[r][c]) e.push([r,c]);
+    if (!e.length) return; const [r,c]=e[Math.floor(Math.random()*e.length)]; b20[r][c]=Math.random()<0.9?2:4;
+  }
+  function slide20(l) {
+    const a=l.filter(v=>v); for (let i=0;i<a.length-1;i++) if (a[i]===a[i+1]) { a[i]*=2; s20+=a[i]; a[i+1]=0; }
+    const m=a.filter(v=>v); while (m.length<4) m.push(0); return m;
+  }
+  function move20(dir) {
+    const p=JSON.stringify(b20);
+    if (dir==='left'||dir==='right') {
+      for (let r=0;r<4;r++) { let row=[...b20[r]]; if(dir==='right') row.reverse(); row=slide20(row); if(dir==='right') row.reverse(); b20[r]=row; }
+    } else {
+      for (let c=0;c<4;c++) { let col=[b20[0][c],b20[1][c],b20[2][c],b20[3][c]]; if(dir==='down') col.reverse(); col=slide20(col); if(dir==='down') col.reverse(); for(let r=0;r<4;r++) b20[r][c]=col[r]; }
+    }
+    if (JSON.stringify(b20)!==p) { add20(); render20(); }
+  }
+  function render20() {
+    saveBest('g2048', s20);
+    document.getElementById('g20-hud-score').textContent = 'SCORE: ' + s20;
+    document.getElementById('g20-hud-best').textContent = 'BEST: ' + bests.g2048;
+    const cols={0:'#1c2030',2:'#2b3147',4:'#3b425e',8:'#0284c7',16:'#00b4d8',32:'#7c3aed',64:'#a855f7',128:'#d97706',256:'#ea580c',512:'#e11d48',1024:'#16a34a',2048:'#d8ff00'};
+    const el=document.getElementById('sa-2048-grid'); el.innerHTML='';
+    for (let r=0;r<4;r++) for (let c=0;c<4;c++) {
+      const v=b20[r][c]; const t=document.createElement('div'); t.className='sa-2048-tile';
+      t.style.background=cols[v]||'#d8ff00'; t.style.color=v===2048?'#000':'#fff'; t.textContent=v||''; el.appendChild(t);
+    }
+  }
+  document.querySelectorAll('[data-m20]').forEach(b => b.onclick = () => move20(b.dataset.m20));
+  document.getElementById('g20-restart').onclick = start2048;
+  let ts20=null;
+  const g20El=document.getElementById('sa-2048-grid');
+  g20El.addEventListener('touchstart', e => { e.preventDefault(); ts20={x:e.touches[0].clientX, y:e.touches[0].clientY}; }, {passive:false});
+  g20El.addEventListener('touchend', e => {
+    if (!ts20) return;
+    const dx=e.changedTouches[0].clientX-ts20.x, dy=e.changedTouches[0].clientY-ts20.y;
+    if (Math.abs(dx)>20 || Math.abs(dy)>20) move20(Math.abs(dx)>Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'down':'up'));
+    ts20=null;
+  });
+
+  // 初期表示
+  switchTab('home');
+})();
+</script>
+</body>
+</html>
