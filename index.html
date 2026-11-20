@@ -1563,118 +1563,127 @@
   switchTab('home');
 })();
 </script>
-</body>
-  <!-- ===== ショート動画 爆速・軽量化パッチ ===== -->
+<!-- ===== ショート動画 確実表示＆高速化パッチ ===== -->
 <script>
 (function() {
-  let ytPlayer = null;
-  let ytReady = false;
-  let lightQueue = [
-    { id: 'jNQXAC9IVRw', title: 'Me at the zoo', author: 'jawed' },
-    { id: 'aqz-KE-bpKQ', title: 'Big Buck Bunny 60fps', author: 'Blender' },
-    { id: 'LXb3EKWsInQ', title: 'Costa Rica 4K HDR', author: 'Jacob + Katie Schwarz' }
+  const FALLBACK_SHORTS = [
+    { id: 'jNQXAC9IVRw', title: 'Me at the zoo (YouTube最初の動画)', author: 'jawed' },
+    { id: 'aqz-KE-bpKQ', title: 'Big Buck Bunny 60fps 4K', author: 'Blender' },
+    { id: 'LXb3EKWsInQ', title: 'COSTA RICA IN 4K 60fps', author: 'Jacob + Katie Schwarz' },
+    { id: 'jfKfPfyJRdk', title: 'lofi hip hop radio', author: 'Lofi Girl' }
   ];
-  let lightIdx = 0;
-  const shortsCache = {};
 
-  if (!window.YT) {
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
-  }
+  let queue = [...FALLBACK_SHORTS];
+  let idx = 0;
+  const cache = {};
 
-  const prevReady = window.onYouTubeIframeAPIReady;
-  window.onYouTubeIframeAPIReady = function() {
-    if (prevReady) prevReady();
-    const container = document.getElementById('shorts-touch-area');
-    if (!container) return;
-    container.innerHTML = '<div id="yt-shorts-player"></div><iframe id="shorts-iframe" src="about:blank" style="display:none;"></iframe>';
-    ytPlayer = new YT.Player('yt-shorts-player', {
-      width: '100%',
-      height: '100%',
-      videoId: lightQueue[0].id,
-      playerVars: {
-        autoplay: 0,
-        playsinline: 1,
-        rel: 0,
-        modestbranding: 1
-      },
-      events: {
-        onReady: () => { ytReady = true; },
-        onStateChange: (e) => {
-          if (e.data === YT.PlayerState.ENDED && ytPlayer) {
-            ytPlayer.seekTo(0);
-            ytPlayer.playVideo();
-          }
-        }
-      }
-    });
-  };
-
-  function playLightShort(idx) {
-    if (!lightQueue.length) return;
-    lightIdx = (idx + lightQueue.length) % lightQueue.length;
-    const item = lightQueue[lightIdx];
-    document.getElementById('shorts-title').textContent = item.title;
-    document.getElementById('shorts-author').textContent = `${item.author} (${lightIdx + 1} / ${lightQueue.length})`;
-
-    if (ytReady && ytPlayer && ytPlayer.loadVideoById) {
-      ytPlayer.loadVideoById(item.id);
+  function getIframe() {
+    const area = document.getElementById('shorts-touch-area');
+    if (!area) return null;
+    let ifr = document.getElementById('shorts-iframe');
+    if (!ifr || ifr.style.display === 'none') {
+      area.innerHTML = '<iframe id="shorts-iframe" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:none;"></iframe>';
+      ifr = document.getElementById('shorts-iframe');
     }
+    return ifr;
   }
 
-  async function loadLightShortsCategory(q) {
-    if (shortsCache[q]) {
-      lightQueue = shortsCache[q];
-      playLightShort(0);
+  function showShort(newIdx) {
+    if (!queue.length) queue = [...FALLBACK_SHORTS];
+    idx = (newIdx + queue.length) % queue.length;
+    const item = queue[idx];
+    const ifr = getIframe();
+    if (ifr) {
+      ifr.src = `https://www.youtube-nocookie.com/embed/${item.id}?autoplay=1&loop=1&playlist=${item.id}&playsinline=1&rel=0`;
+    }
+    const titleEl = document.getElementById('shorts-title');
+    const authorEl = document.getElementById('shorts-author');
+    if (titleEl) titleEl.textContent = item.title;
+    if (authorEl) authorEl.textContent = `${item.author} (${idx + 1} / ${queue.length})`;
+  }
+
+  async function loadTopic(q) {
+    if (cache[q]) {
+      queue = cache[q];
+      showShort(0);
       return;
     }
-    document.getElementById('shorts-title').textContent = '読み込み中...';
-    const nodes = ['https://inv.nadeko.net', 'https://invidious.nerdvpn.de'];
+    showShort(0);
+
+    const hosts = ['https://inv.nadeko.net', 'https://invidious.nerdvpn.de', 'https://invidious.jing.rocks'];
     try {
-      const res = await Promise.any(nodes.map(host =>
-        fetch(`${host}/api/v1/search?q=${encodeURIComponent(q + ' #shorts')}&type=video&region=JP`)
+      const results = await Promise.any(hosts.map(h =>
+        fetch(`${h}/api/v1/search?q=${encodeURIComponent(q + ' #shorts')}&type=video&region=JP`)
           .then(r => r.json())
-          .then(d => {
-            if (!Array.isArray(d) || !d.length) throw new Error();
-            return d.slice(0, 12).filter(v => v.videoId).map(v => ({
+          .then(data => {
+            if (!Array.isArray(data) || !data.length) throw new Error();
+            return data.slice(0, 12).filter(v => v.videoId).map(v => ({
               id: v.videoId,
-              title: v.title,
-              author: v.author
+              title: v.title || 'ショート動画',
+              author: v.author || 'YouTube'
             }));
           })
       ));
-      shortsCache[q] = res;
-      lightQueue = res;
-      playLightShort(0);
-    } catch (_) {
-      playLightShort(0);
-    }
+      if (results && results.length) {
+        cache[q] = results;
+        queue = results;
+        showShort(0);
+      }
+    } catch (_) {}
   }
+
+  document.querySelectorAll('[data-nav]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const nav = btn.dataset.nav;
+      if (nav === 'shorts') {
+        e.stopImmediatePropagation();
+        document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === 'shorts'));
+        const feed = document.getElementById('view-feed');
+        const shorts = document.getElementById('view-shorts');
+        if (feed) feed.style.display = 'none';
+        if (shorts) {
+          shorts.style.display = 'flex';
+          shorts.classList.add('active');
+        }
+        loadTopic('shorts 人気 日本');
+      } else {
+        const shorts = document.getElementById('view-shorts');
+        if (shorts) {
+          shorts.style.display = 'none';
+          shorts.classList.remove('active');
+        }
+        const ifr = document.getElementById('shorts-iframe');
+        if (ifr) ifr.src = '';
+      }
+    }, true);
+  });
 
   const prevBtn = document.getElementById('shorts-prev');
   const nextBtn = document.getElementById('shorts-next');
-  if (prevBtn) prevBtn.onclick = () => playLightShort(lightIdx - 1);
-  if (nextBtn) nextBtn.onclick = () => playLightShort(lightIdx + 1);
+  if (prevBtn) prevBtn.onclick = () => showShort(idx - 1);
+  if (nextBtn) nextBtn.onclick = () => showShort(idx + 1);
 
   document.querySelectorAll('#shorts-chips .yt-chip').forEach(chip => {
     chip.onclick = () => {
       document.querySelectorAll('#shorts-chips .yt-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
-      loadLightShortsCategory(chip.dataset.sq);
+      loadTopic(chip.dataset.sq);
     };
   });
 
-  document.querySelectorAll('[data-nav]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.nav === 'shorts') {
-        if (!shortsCache['shorts 人気 日本']) loadLightShortsCategory('shorts 人気 日本');
-        else playLightShort(lightIdx);
-      } else if (ytReady && ytPlayer && ytPlayer.stopVideo) {
-        ytPlayer.stopVideo();
-      }
+  const touchArea = document.getElementById('shorts-touch-area');
+  let startY = null;
+  if (touchArea) {
+    touchArea.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+    touchArea.addEventListener('touchend', e => {
+      if (startY === null) return;
+      const diff = startY - e.changedTouches[0].clientY;
+      if (Math.abs(diff) > 40) showShort(diff > 0 ? idx + 1 : idx - 1);
+      startY = null;
     });
-  });
+  }
 })();
 </script>
+</body>
 </html>
+
