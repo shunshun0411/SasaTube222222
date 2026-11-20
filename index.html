@@ -1564,4 +1564,117 @@
 })();
 </script>
 </body>
+  <!-- ===== ショート動画 爆速・軽量化パッチ ===== -->
+<script>
+(function() {
+  let ytPlayer = null;
+  let ytReady = false;
+  let lightQueue = [
+    { id: 'jNQXAC9IVRw', title: 'Me at the zoo', author: 'jawed' },
+    { id: 'aqz-KE-bpKQ', title: 'Big Buck Bunny 60fps', author: 'Blender' },
+    { id: 'LXb3EKWsInQ', title: 'Costa Rica 4K HDR', author: 'Jacob + Katie Schwarz' }
+  ];
+  let lightIdx = 0;
+  const shortsCache = {};
+
+  if (!window.YT) {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  }
+
+  const prevReady = window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady = function() {
+    if (prevReady) prevReady();
+    const container = document.getElementById('shorts-touch-area');
+    if (!container) return;
+    container.innerHTML = '<div id="yt-shorts-player"></div><iframe id="shorts-iframe" src="about:blank" style="display:none;"></iframe>';
+    ytPlayer = new YT.Player('yt-shorts-player', {
+      width: '100%',
+      height: '100%',
+      videoId: lightQueue[0].id,
+      playerVars: {
+        autoplay: 0,
+        playsinline: 1,
+        rel: 0,
+        modestbranding: 1
+      },
+      events: {
+        onReady: () => { ytReady = true; },
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.ENDED && ytPlayer) {
+            ytPlayer.seekTo(0);
+            ytPlayer.playVideo();
+          }
+        }
+      }
+    });
+  };
+
+  function playLightShort(idx) {
+    if (!lightQueue.length) return;
+    lightIdx = (idx + lightQueue.length) % lightQueue.length;
+    const item = lightQueue[lightIdx];
+    document.getElementById('shorts-title').textContent = item.title;
+    document.getElementById('shorts-author').textContent = `${item.author} (${lightIdx + 1} / ${lightQueue.length})`;
+
+    if (ytReady && ytPlayer && ytPlayer.loadVideoById) {
+      ytPlayer.loadVideoById(item.id);
+    }
+  }
+
+  async function loadLightShortsCategory(q) {
+    if (shortsCache[q]) {
+      lightQueue = shortsCache[q];
+      playLightShort(0);
+      return;
+    }
+    document.getElementById('shorts-title').textContent = '読み込み中...';
+    const nodes = ['https://inv.nadeko.net', 'https://invidious.nerdvpn.de'];
+    try {
+      const res = await Promise.any(nodes.map(host =>
+        fetch(`${host}/api/v1/search?q=${encodeURIComponent(q + ' #shorts')}&type=video&region=JP`)
+          .then(r => r.json())
+          .then(d => {
+            if (!Array.isArray(d) || !d.length) throw new Error();
+            return d.slice(0, 12).filter(v => v.videoId).map(v => ({
+              id: v.videoId,
+              title: v.title,
+              author: v.author
+            }));
+          })
+      ));
+      shortsCache[q] = res;
+      lightQueue = res;
+      playLightShort(0);
+    } catch (_) {
+      playLightShort(0);
+    }
+  }
+
+  const prevBtn = document.getElementById('shorts-prev');
+  const nextBtn = document.getElementById('shorts-next');
+  if (prevBtn) prevBtn.onclick = () => playLightShort(lightIdx - 1);
+  if (nextBtn) nextBtn.onclick = () => playLightShort(lightIdx + 1);
+
+  document.querySelectorAll('#shorts-chips .yt-chip').forEach(chip => {
+    chip.onclick = () => {
+      document.querySelectorAll('#shorts-chips .yt-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      loadLightShortsCategory(chip.dataset.sq);
+    };
+  });
+
+  document.querySelectorAll('[data-nav]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.nav === 'shorts') {
+        if (!shortsCache['shorts 人気 日本']) loadLightShortsCategory('shorts 人気 日本');
+        else playLightShort(lightIdx);
+      } else if (ytReady && ytPlayer && ytPlayer.stopVideo) {
+        ytPlayer.stopVideo();
+      }
+    });
+  });
+})();
+</script>
 </html>
